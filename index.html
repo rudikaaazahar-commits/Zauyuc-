@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Diamond Miner</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #151d36;
+      --card-2: #1d2849;
+      --accent: #38bdf8;
+      --diamond: #22d3ee;
+      --ore: #fbbf24;
+      --chest: #c084fc;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 14px 14px 86px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top, #172554 0%, var(--bg) 65%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    .player-badge {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .stat-box {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .stat-val {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .diamonds-val { color: var(--diamond); }
+    .ore-val { color: var(--ore); }
+    .chests-val { color: var(--chest); }
+
+    .mine-card {
+      background: var(--card);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 20px;
+      padding: 16px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .sub-info {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .crystal-btn {
+      width: 144px;
+      height: 144px;
+      border-radius: 50%;
+      border: 3px solid rgba(34, 211, 238, 0.55);
+      background: radial-gradient(circle at 30% 25%, #67e8f9, #0284c7 65%, #0f172a 100%);
+      box-shadow: 0 0 28px rgba(34, 211, 238, 0.35);
+      font-size: 56px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.08s ease;
+    }
+
+    .crystal-btn:active {
+      transform: scale(0.92);
+    }
+
+    .energy-wrap {
+      margin-top: 14px;
+      text-align: left;
+    }
+
+    .energy-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .energy-bar {
+      height: 10px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .energy-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #22d3ee, #3b82f6);
+      transition: width 0.2s ease;
+    }
+
+    .offline-banner {
+      background: rgba(56, 189, 248, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #e0f2fe;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .item-card {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .item-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .item-desc {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #061322;
+      border: none;
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-chest {
+      background: var(--chest);
+      color: #180828;
+    }
+
+    .log-box {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 13px;
+      color: #e2e8f0;
+      min-height: 46px;
+      margin-top: 10px;
+    }
+
+    .nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.96);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 8px 10px;
+      gap: 6px;
+    }
+
+    .nav-btn {
+      background: var(--card-2);
+      color: var(--muted);
+      border: none;
+      border-radius: 12px;
+      padding: 9px 6px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .nav-btn.active {
+      background: var(--accent);
+      color: #051220;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">⛏️ Diamond Miner</div>
+    <div class="player-badge" id="playerName">Шахтар</div>
+  </div>
+
+  <div class="offline-banner" id="offlineBanner"></div>
+
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-label">Алмази</div>
+      <div class="stat-val diamonds-val" id="diamonds">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Руда</div>
+      <div class="stat-val ore-val" id="ore">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Скрині</div>
+      <div class="stat-val chests-val" id="chests">1</div>
+    </div>
+  </div>
+
+  <div class="section active" id="tab-mine">
+    <div class="mine-card">
+      <div class="sub-info" id="incomeInfo">За тап: +1 💎, +1 🪨 | Авто: +0 💎/с</div>
+      <button class="crystal-btn" id="tapBtn" aria-label="Добувати">💎</button>
+      <div class="energy-wrap">
+        <div class="energy-top">
+          <span>⚡ Енергія</span>
+          <span id="energyText">100 / 100</span>
+        </div>
+        <div class="energy-bar">
+          <div class="energy-fill" id="energyFill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" id="tab-shop">
+    <div class="item-card">
+      <div>
+        <div class="item-title">🪓 Краща кирка (Рів. <span id="pickaxeLvl">1</span>)</div>
+        <div class="item-desc">+1 алмаз і +1 руда за тап</div>
+      </div>
+      <button class="btn" id="buyPickaxeBtn">10 💎</button>
+    </div>
+
+    <div class="item-card">
+      <div>
+        <div class="item-title">🤖 Авто-шахтар (Рів. <span id="autoLvl">0</span>)</div>
+        <div class="item-desc">+1 алмаз щосекунди (працює і в офлайні)</div>
+      </div>
+      <button class="btn" id="buyAutoBtn">25 💎</button>
+    </div>
+
+    <div class="item-card">
+      <div>
+        <div class="item-title">🔋 Більше енергії (Рів. <span id="energyLvl">1</span>)</div>
+        <div class="item-desc">+25 макс. енергії</div>
+      </div>
+      <button class="btn" id="buyEnergyBtn">15 🪨</button>
+    </div>
+  </div>
+
+  <div class="section" id="tab-chests">
+    <div class="item-card">
+      <div>
+        <div class="item-title">🎁 Купити скриню</div>
+        <div class="item-desc">Коштує 30 алмазів</div>
+      </div>
+      <button class="btn btn-chest" id="buyChestBtn">30 💎</button>
+    </div>
+
+    <div class="item-card">
+      <div>
+        <div class="item-title">📦 Відкрити скриню</div>
+        <div class="item-desc">Випадають алмази, руда або бонусні скрині</div>
+      </div>
+      <button class="btn btn-chest" id="openChestBtn">Відкрити</button>
+    </div>
+
+    <div class="log-box" id="chestLog">Відкрий скриню, щоб отримати нагороду!</div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" data-tab="mine">⛏️ Шахта</button>
+    <button class="nav-btn" data-tab="shop">🛒 Прокачка</button>
+    <button class="nav-btn" data-tab="chests">🎁 Скрині</button>
+  </div>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      const user = tg.initDataUnsafe && tg.initDataUnsafe.user;
+      if (user && user.first_name) {
+        document.getElementById("playerName").textContent = user.first_name;
+      }
+    }
+
+    const STORAGE_KEY = "diamond_miner_save_v2";
+    const MAX_OFFLINE_SECONDS = 8 * 3600; // до 8 годин офлайн-фарму за один раз
+
+    const state = Object.assign({
+      diamonds: 0,
+      ore: 0,
+      chests: 1,
+      pickaxeLvl: 1,
+      autoLvl: 0,
+      energyLvl: 1,
+      energy: 100,
+      lastSeen: Date.now()
+    }, JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"));
+
+    function maxEnergy() {
+      return 100 + (state.energyLvl - 1) * 25;
+    }
+
+    function tapGain() {
+      return state.pickaxeLvl;
+    }
+
+    function pickaxeCost() {
+      return Math.floor(10 * Math.pow(1.45, state.pickaxeLvl - 1));
+    }
+
+    function autoCost() {
+      return Math.floor(25 * Math.pow(1.55, state.autoLvl));
+    }
+
+    function energyCost() {
+      return Math.floor(15 * Math.pow(1.4, state.energyLvl - 1));
+    }
+
+    function save() {
+      state.lastSeen = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function applyOfflineProgress(showBanner = true) {
+      const now = Date.now();
+      const elapsedSec = Math.max(0, Math.floor((now - (state.lastSeen || now)) / 1000));
+      const effectiveSec = Math.min(elapsedSec, MAX_OFFLINE_SECONDS);
+
+      if (effectiveSec >= 2) {
+        const cap = maxEnergy();
+        const gainedEnergy = Math.min(cap - state.energy, effectiveSec);
+        const gainedDiamonds = state.autoLvl * effectiveSec;
+
+        if (gainedEnergy > 0) state.energy += gainedEnergy;
+        if (gainedDiamonds > 0) state.diamonds += gainedDiamonds;
+
+        if (showBanner && (gainedDiamonds > 0 || gainedEnergy > 0)) {
+          const banner = document.getElementById("offlineBanner");
+          banner.style.display = "block";
+          banner.textContent =
+            `🌙 Офлайн-звіт (${effectiveSec} с): +${gainedDiamonds} 💎 та +${gainedEnergy} ⚡ енергії`;
+        }
+      }
+      save();
+    }
+
+    function render() {
+      const cap = maxEnergy();
+      if (state.energy > cap) state.energy = cap;
+
+      document.getElementById("diamonds").textContent = Math.floor(state.diamonds);
+      document.getElementById("ore").textContent = Math.floor(state.ore);
+      document.getElementById("chests").textContent = Math.floor(state.chests);
+
+      document.getElementById("incomeInfo").textContent =
+        `За тап: +${tapGain()} 💎, +${tapGain()} 🪨 | Авто: +${state.autoLvl} 💎/с`;
+
+      document.getElementById("energyText").textContent = `${Math.floor(state.energy)} / ${cap}`;
+      document.getElementById("energyFill").style.width = `${Math.max(0, Math.min(100, (state.energy / cap) * 100))}%`;
+
+      document.getElementById("pickaxeLvl").textContent = state.pickaxeLvl;
+      document.getElementById("autoLvl").textContent = state.autoLvl;
+      document.getElementById("energyLvl").textContent = state.energyLvl;
+
+      const pCost = pickaxeCost();
+      const aCost = autoCost();
+      const eCost = energyCost();
+
+      const buyPickBtn = document.getElementById("buyPickaxeBtn");
+      buyPickBtn.textContent = `${pCost} 💎`;
+      buyPickBtn.disabled = state.diamonds < pCost;
+
+      const buyAutoBtn = document.getElementById("buyAutoBtn");
+      buyAutoBtn.textContent = `${aCost} 💎`;
+      buyAutoBtn.disabled = state.diamonds < aCost;
+
+      const buyEnergyBtn = document.getElementById("buyEnergyBtn");
+      buyEnergyBtn.textContent = `${eCost} 🪨`;
+      buyEnergyBtn.disabled = state.ore < eCost;
+
+      document.getElementById("buyChestBtn").disabled = state.diamonds < 30;
+      document.getElementById("openChestBtn").disabled = state.chests <= 0;
+
+      save();
+    }
+
+    document.getElementById("tapBtn").addEventListener("click", () => {
+      if (state.energy < 1) return;
+      state.energy -= 1;
+      const gain = tapGain();
+      state.diamonds += gain;
+      state.ore += gain;
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred("light");
+      }
+      render();
+    });
+
+    document.getElementById("buyPickaxeBtn").addEventListener("click", () => {
+      const cost = pickaxeCost();
+      if (state.diamonds >= cost) {
+        state.diamonds -= cost;
+        state.pickaxeLvl += 1;
+        render();
+      }
+    });
+
+    document.getElementById("buyAutoBtn").addEventListener("click", () => {
+      const cost = autoCost();
+      if (state.diamonds >= cost) {
+        state.diamonds -= cost;
+        state.autoLvl += 1;
+        render();
+      }
+    });
+
+    document.getElementById("buyEnergyBtn").addEventListener("click", () => {
+      const cost = energyCost();
+      if (state.ore >= cost) {
+        state.ore -= cost;
+        state.energyLvl += 1;
+        state.energy = maxEnergy();
+        render();
+      }
+    });
+
+    document.getElementById("buyChestBtn").addEventListener("click", () => {
+      if (state.diamonds >= 30) {
+        state.diamonds -= 30;
+        state.chests += 1;
+        document.getElementById("chestLog").textContent = "Куплено нову скриню! Натисни «Відкрити».";
+        render();
+      }
+    });
+
+    document.getElementById("openChestBtn").addEventListener("click", () => {
+      if (state.chests <= 0) return;
+      state.chests -= 1;
+      const roll = Math.random();
+      let msg = "";
+      if (roll < 0.45) {
+        const d = 20 + state.pickaxeLvl * 5;
+        state.diamonds += d;
+        msg = `🎉 У скрині знайдено +${d} 💎 алмазів!`;
+      } else if (roll < 0.85) {
+        const o = 25 + state.pickaxeLvl * 6;
+        state.ore += o;
+        msg = `🪨 У скрині знайдено +${o} 🪨 руди!`;
+      } else {
+        state.chests += 2;
+        msg = `✨ Джекпот! У скрині було ще +2 🎁 скрині!`;
+      }
+      document.getElementById("chestLog").textContent = msg;
+      render();
+    });
+
+    document.querySelectorAll(".nav-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+      });
+    });
+
+    // Реакція на згортання/розгортання або перехід у фон
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        save();
+      } else {
+        applyOfflineProgress(true);
+        render();
+      }
+    });
+
+    window.addEventListener("pagehide", save);
+
+    setInterval(() => {
+      if (document.hidden) return;
+      const cap = maxEnergy();
+      if (state.energy < cap) {
+        state.energy = Math.min(cap, state.energy + 1);
+      }
+      if (state.autoLvl > 0) {
+        state.diamonds += state.autoLvl;
+      }
+      render();
+    }, 1000);
+
+    applyOfflineProgress(true);
+    render();
+  </script>
+</body>
+        </html>
+        
